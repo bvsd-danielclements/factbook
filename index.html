@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>World Explorer</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Fraunces:wght@700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --sky: #3B82F6;
+    --sky-light: #EFF6FF;
+    --sky-dark: #1D4ED8;
+    --green: #22C55E;
+    --green-light: #F0FDF4;
+    --amber: #F59E0B;
+    --amber-light: #FFFBEB;
+    --coral: #EF4444;
+    --coral-light: #FEF2F2;
+    --purple: #8B5CF6;
+    --purple-light: #F5F3FF;
+    --teal: #14B8A6;
+    --teal-light: #F0FDFA;
+    --text: #1E293B;
+    --text-muted: #64748B;
+    --surface: #F8FAFC;
+    --card: #FFFFFF;
+    --border: #E2E8F0;
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--surface);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* ── Header ── */
+  header {
+    background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 60%, #06B6D4 100%);
+    color: white;
+    padding: 2rem 1.5rem 3.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0; right: 0;
+    height: 40px;
+    background: var(--surface);
+    border-radius: 40px 40px 0 0;
+  }
+  .header-inner { max-width: 860px; margin: 0 auto; position: relative; z-index: 1; }
+  header h1 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    line-height: 1.1;
+    margin-bottom: 0.5rem;
+  }
+  header p { font-size: 1.1rem; opacity: 0.88; font-weight: 600; }
+
+  /* Floating globe decoration */
+  .globe {
+    position: absolute;
+    right: -20px; top: -20px;
+    width: 160px; height: 160px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.15);
+  }
+  .globe::before {
+    content: '🌍';
+    font-size: 80px;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+  }
+
+  /* ── Main layout ── */
+  main { max-width: 860px; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+
+  /* ── Search bar ── */
+  .search-wrap {
+    position: relative;
+    margin-bottom: 1.5rem;
+  }
+  .search-icon {
+    position: absolute;
+    left: 1rem; top: 50%;
+    transform: translateY(-50%);
+    font-size: 18px;
+    pointer-events: none;
+  }
+  #search {
+    width: 100%;
+    padding: 0.9rem 1rem 0.9rem 3rem;
+    font-family: 'Nunito', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  #search:focus {
+    border-color: var(--sky);
+    box-shadow: 0 0 0 4px rgba(59,130,246,0.12);
+  }
+  #search::placeholder { color: var(--text-muted); font-weight: 400; }
+
+  /* ── Region tabs ── */
+  .regions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+  }
+  .region-btn {
+    padding: 0.45rem 1rem;
+    border-radius: 999px;
+    border: 2px solid var(--border);
+    background: var(--card);
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .region-btn:hover { border-color: var(--sky); color: var(--sky); }
+  .region-btn.active {
+    background: var(--sky);
+    border-color: var(--sky);
+    color: white;
+  }
+
+  /* ── Country grid ── */
+  #country-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 2rem;
+  }
+  .country-card {
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.1rem 1rem;
+    cursor: pointer;
+    transition: all 0.18s;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .country-card:hover {
+    border-color: var(--sky);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(59,130,246,0.12);
+  }
+  .country-card .flag { font-size: 28px; margin-bottom: 4px; }
+  .country-card .name {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1.2;
+  }
+  .country-card .region-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  /* ── Status messages ── */
+  .status {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-muted);
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  .status .emoji { font-size: 3rem; display: block; margin-bottom: 0.75rem; }
+
+  /* ── Country detail panel ── */
+  #detail {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(4px);
+    padding: 1rem;
+    overflow-y: auto;
+  }
+  #detail.open { display: flex; align-items: flex-start; justify-content: center; }
+  .detail-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    width: 100%;
+    max-width: 640px;
+    margin: auto;
+    overflow: hidden;
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .detail-header {
+    background: linear-gradient(135deg, #1E40AF, #3B82F6);
+    color: white;
+    padding: 1.5rem;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .detail-flag { font-size: 56px; line-height: 1; }
+  .detail-name {
+    font-family: 'Fraunces', serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    line-height: 1.1;
+    flex: 1;
+  }
+  .detail-region {
+    font-size: 0.85rem;
+    opacity: 0.8;
+    font-weight: 600;
+    margin-top: 4px;
+  }
+  .close-btn {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    font-size: 1.2rem;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s;
+  }
+  .close-btn:hover { background: rgba(255,255,255,0.35); }
+
+  .detail-body { padding: 1.5rem; }
+
+  /* Fact sections */
+  .fact-section {
+    margin-bottom: 1.5rem;
+  }
+  .fact-section h3 {
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+  }
+  .fact-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+  }
+  .fact-tile {
+    border-radius: var(--radius-sm);
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .fact-tile.blue   { background: var(--sky-light); }
+  .fact-tile.green  { background: var(--green-light); }
+  .fact-tile.amber  { background: var(--amber-light); }
+  .fact-tile.coral  { background: var(--coral-light); }
+  .fact-tile.purple { background: var(--purple-light); }
+  .fact-tile.teal   { background: var(--teal-light); }
+  .fact-tile-icon { font-size: 18px; }
+  .fact-tile-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .fact-tile-value {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1.3;
+  }
+
+  /* Text fact rows */
+  .fact-text-row {
+    padding: 0.65rem 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+  .fact-text-row:last-child { border-bottom: none; }
+  .fact-text-row .row-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .fact-text-row .row-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    min-width: 90px;
+    flex-shrink: 0;
+  }
+  .fact-text-row .row-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+    flex: 1;
+  }
+
+  /* Background blurb */
+  .blurb-box {
+    background: var(--sky-light);
+    border-left: 4px solid var(--sky);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    padding: 1rem 1.1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.65;
+  }
+
+  /* Loading skeleton */
+  .skeleton {
+    background: linear-gradient(90deg, #E2E8F0 25%, #F1F5F9 50%, #E2E8F0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.2s infinite;
+    border-radius: 8px;
+    height: 1em;
+    margin: 4px 0;
+  }
+  @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+  /* ── Responsive ── */
+  @media (max-width: 500px) {
+    #country-grid { grid-template-columns: repeat(2, 1fr); }
+    .detail-name { font-size: 1.4rem; }
+    .detail-flag { font-size: 40px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="globe"></div>
+  <div class="header-inner">
+    <h1>🌍 World Explorer</h1>
+    <p>Discover every country on Earth</p>
+  </div>
+</header>
+
+<main>
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="search" placeholder="Search for a country..." autocomplete="off" spellcheck="false">
+  </div>
+
+  <div class="regions" id="region-tabs"></div>
+
+  <div id="country-grid">
+    <div class="status"><span class="emoji">🌐</span>Loading countries…</div>
+  </div>
+</main>
+
+<!-- Detail overlay -->
+<div id="detail">
+  <div class="detail-card" id="detail-card">
+    <div class="detail-header">
+      <div>
+        <div class="detail-flag" id="d-flag"></div>
+        <div class="detail-name" id="d-name"></div>
+        <div class="detail-region" id="d-region"></div>
+      </div>
+      <button class="close-btn" id="close-btn">✕</button>
+    </div>
+    <div class="detail-body" id="d-body">
+      <div class="skeleton" style="width:60%;height:14px"></div>
+      <div class="skeleton" style="width:80%;height:14px;margin-top:8px"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const RAW = 'https://raw.githubusercontent.com/factbook/factbook.json/master';
+
+// GEC code → region slug mapping
+const REGIONS = {
+  africa: 'Africa',
+  'australia-oceania': 'Oceania',
+  'central-america-n-caribbean': 'Caribbean & C. America',
+  'central-asia': 'Central Asia',
+  'east-n-southeast-asia': 'East & SE Asia',
+  europe: 'Europe',
+  'middle-east': 'Middle East',
+  'north-america': 'North America',
+  'south-america': 'South America',
+  'south-asia': 'South Asia',
+  oceans: 'Oceans',
+  world: 'World',
+};
+
+// GEC → emoji flag (sample; full map via Unicode math on ISO, fallback to 🌐)
+// We'll derive flags from GEC using our own lookup for common ones, else globe.
+const GEC_TO_ISO = {"af":"AF","al":"AL","ag":"DZ","an":"AD","ao":"AO","ac":"AG","ar":"AR","am":"AM","as":"AU","au":"AT","aj":"AZ","bf":"BS","ba":"BH","bg":"BD","bb":"BB","bo":"BY","be":"BE","bh":"BZ","bn":"BJ","bt":"BT","bl":"BO","bk":"BA","bc":"BW","br":"BR","bx":"BN","bu":"BG","uv":"BF","bm":"MM","by":"BI","cb":"KH","cm":"CM","ca":"CA","cv":"CV","ct":"CF","cd":"TD","ci":"CL","ch":"CN","co":"CO","cn":"KM","cg":"CD","cf":"CG","cs":"CR","iv":"CI","hr":"HR","cu":"CU","cy":"CY","ez":"CZ","da":"DK","dj":"DJ","do":"DM","dr":"DO","ec":"EC","eg":"EG","es":"SV","ek":"GQ","er":"ER","en":"EE","wz":"SZ","et":"ET","fj":"FJ","fi":"FI","fr":"FR","gb":"GA","ga":"GM","gg":"GE","gm":"DE","gh":"GH","gr":"GR","gj":"GD","gt":"GT","gv":"GN","pu":"GW","gy":"GY","ha":"HT","ho":"HN","hu":"HU","ic":"IS","in":"IN","id":"ID","ir":"IR","iz":"IQ","ei":"IE","is":"IL","it":"IT","jm":"JM","ja":"JP","jo":"JO","kz":"KZ","ke":"KE","kr":"KI","kn":"KP","ks":"KR","kv":"XK","ku":"KW","kg":"KG","la":"LA","lg":"LV","le":"LB","lt":"LS","li":"LR","ly":"LY","ls":"LI","lh":"LT","lu":"LU","ma":"MG","mi":"MW","my":"MY","mv":"MV","ml":"ML","mt":"MT","rm":"MH","mr":"MR","mp":"MU","mx":"MX","fm":"FM","md":"MD","mn":"MC","mg":"MN","mj":"ME","mo":"MA","mz":"MZ","wa":"NA","nr":"NR","np":"NP","nl":"NL","nz":"NZ","nu":"NI","ng":"NE","ni":"NG","no":"NO","mk":"MK","mu":"OM","pk":"PK","ps":"PW","pm":"PA","pp":"PG","pa":"PY","pe":"PE","rp":"PH","pl":"PL","po":"PT","qa":"QA","ro":"RO","rs":"RU","rw":"RW","sc":"KN","st":"LC","vc":"VC","ws":"WS","sm":"SM","tp":"ST","sa":"SA","sg":"SG","ri":"RS","se":"SC","sl":"SL","sn":"SG","lo":"SK","si":"SI","bp":"SB","so":"SO","sf":"ZA","od":"SS","sp":"ES","ce":"LK","su":"SD","ns":"SR","sw":"SE","sz":"CH","sy":"SY","ti":"TJ","tz":"TZ","th":"TH","tt":"TL","to":"TG","tn":"TO","td":"TT","ts":"TN","tu":"TR","tx":"TM","tv":"TV","ug":"UG","up":"UA","ae":"AE","uk":"GB","us":"US","uy":"UY","uz":"UZ","nh":"VU","vt":"VA","ve":"VE","vm":"VN","ym":"YE","za":"ZM","zi":"ZW","tw":"TW","ee":"EU","gl":"GL","fo":"FO","hk":"HK","mc":"MO","fp":"PF","nc":"NC","aq":"AS","gq":"GU","rq":"PR","vq":"VI"};
+
+function emojiFlag(isoCode) {
+  if (!isoCode || isoCode.length !== 2) return '🌐';
+  const cp = [...isoCode.toUpperCase()].map(c => 0x1F1E6 + c.charCodeAt(0) - 65);
+  return String.fromCodePoint(...cp);
+}
+
+function gecToFlag(gec) {
+  const iso = GEC_TO_ISO[gec];
+  return iso ? emojiFlag(iso) : '🌐';
+}
+
+// Country index: fetched from meta/countries.json if available, else we build manually
+// We'll fetch the index file and then lazy-load individual country JSONs on click.
+
+// Hardcoded country list per region (GEC code, display name)
+const COUNTRY_INDEX = {
+  africa:[["af","Afghanistan"],["al","Albania"],["ag","Algeria"],["ao","Angola"],["bn","Benin"],["bc","Botswana"],["uv","Burkina Faso"],["bm","Burma"],["by","Burundi"],["cm","Cameroon"],["cv","Cape Verde"],["ct","Central African Republic"],["cd","Chad"],["cn","Comoros"],["cg","Congo DR"],["cf","Congo"],["dj","Djibouti"],["do","Dominica"],["ek","Equatorial Guinea"],["er","Eritrea"],["et","Ethiopia"],["gb","Gabon"],["ga","The Gambia"],["gh","Ghana"],["gv","Guinea"],["pu","Guinea-Bissau"],["iv","Cote d'Ivoire"],["ke","Kenya"],["lt","Lesotho"],["li","Liberia"],["ly","Libya"],["ma","Madagascar"],["mi","Malawi"],["ml","Mali"],["mr","Mauritania"],["mp","Mauritius"],["mo","Morocco"],["mz","Mozambique"],["wa","Namibia"],["ng","Niger"],["ni","Nigeria"],["rw","Rwanda"],["tp","Sao Tome and Principe"],["sg","Senegal"],["se","Seychelles"],["sl","Sierra Leone"],["so","Somalia"],["sf","South Africa"],["od","South Sudan"],["su","Sudan"],["tz","Tanzania"],["to","Togo"],["ts","Tunisia"],["ug","Uganda"],["za","Zambia"],["zi","Zimbabwe"]],
+  "australia-oceania":[["as","Australia"],["fj","Fiji"],["kr","Kiribati"],["rm","Marshall Islands"],["fm","Micronesia"],["nr","Nauru"],["nz","New Zealand"],["ps","Palau"],["pp","Papua New Guinea"],["ws","Samoa"],["bp","Solomon Islands"],["tn","Tonga"],["tv","Tuvalu"],["nh","Vanuatu"]],
+  "central-america-n-caribbean":[["ac","Antigua and Barbuda"],["bf","The Bahamas"],["bb","Barbados"],["bh","Belize"],["ca","Canada"],["cs","Costa Rica"],["cu","Cuba"],["do","Dominica"],["dr","Dominican Republic"],["es","El Salvador"],["gj","Grenada"],["gt","Guatemala"],["ha","Haiti"],["ho","Honduras"],["jm","Jamaica"],["mx","Mexico"],["nu","Nicaragua"],["pm","Panama"],["sc","Saint Kitts and Nevis"],["st","Saint Lucia"],["vc","Saint Vincent and the Grenadines"],["td","Trinidad and Tobago"]],
+  "central-asia":[["am","Armenia"],["aj","Azerbaijan"],["gg","Georgia"],["kz","Kazakhstan"],["kg","Kyrgyzstan"],["ti","Tajikistan"],["tx","Turkmenistan"],["uz","Uzbekistan"]],
+  "east-n-southeast-asia":[["bx","Brunei"],["cb","Cambodia"],["ch","China"],["id","Indonesia"],["ja","Japan"],["kn","North Korea"],["ks","South Korea"],["la","Laos"],["my","Malaysia"],["mg","Mongolia"],["bm","Burma"],["pp","Papua New Guinea"],["rp","Philippines"],["sn","Singapore"],["th","Thailand"],["tt","Timor-Leste"],["vm","Vietnam"],["tw","Taiwan"],["hk","Hong Kong"],["mc","Macau"]],
+  europe:[["al","Albania"],["an","Andorra"],["au","Austria"],["aj","Azerbaijan"],["bo","Belarus"],["be","Belgium"],["bk","Bosnia and Herzegovina"],["bu","Bulgaria"],["hr","Croatia"],["cy","Cyprus"],["ez","Czechia"],["da","Denmark"],["en","Estonia"],["fi","Finland"],["fr","France"],["gg","Georgia"],["gm","Germany"],["gr","Greece"],["hu","Hungary"],["ic","Iceland"],["ei","Ireland"],["it","Italy"],["kv","Kosovo"],["lg","Latvia"],["ls","Liechtenstein"],["lh","Lithuania"],["lu","Luxembourg"],["mk","North Macedonia"],["mt","Malta"],["mn","Monaco"],["mj","Montenegro"],["nl","Netherlands"],["no","Norway"],["pl","Poland"],["po","Portugal"],["ro","Romania"],["rs","Russia"],["sm","San Marino"],["ri","Serbia"],["lo","Slovakia"],["si","Slovenia"],["sp","Spain"],["sw","Sweden"],["sz","Switzerland"],["uk","United Kingdom"],["vt","Vatican City"],["ee","European Union"]],
+  "middle-east":[["ba","Bahrain"],["cy","Cyprus"],["ir","Iran"],["iz","Iraq"],["is","Israel"],["jo","Jordan"],["ku","Kuwait"],["le","Lebanon"],["mu","Oman"],["qa","Qatar"],["sa","Saudi Arabia"],["sy","Syria"],["ae","United Arab Emirates"],["ym","Yemen"],["we","West Bank"],["gz","Gaza Strip"]],
+  "north-america":[["ca","Canada"],["mx","Mexico"],["us","United States"]],
+  "south-america":[["ar","Argentina"],["bl","Bolivia"],["br","Brazil"],["ci","Chile"],["co","Colombia"],["ec","Ecuador"],["gy","Guyana"],["pa","Paraguay"],["pe","Peru"],["ns","Suriname"],["uy","Uruguay"],["ve","Venezuela"]],
+  "south-asia":[["af","Afghanistan"],["bg","Bangladesh"],["bt","Bhutan"],["in","India"],["mv","Maldives"],["np","Nepal"],["pk","Pakistan"],["ce","Sri Lanka"]],
+  oceans:[["xq","Arctic Ocean"],["zh","Atlantic Ocean"],["xo","Indian Ocean"],["zn","Pacific Ocean"],["oo","Southern Ocean"]],
+  world:[["xx","World"]],
+};
+
+// Deduplication helper
+const seen = new Set();
+
+// State
+let currentRegion = 'all';
+let searchQuery = '';
+let allCountries = []; // {gec, name, region}
+
+// Build flat list
+for (const [region, list] of Object.entries(COUNTRY_INDEX)) {
+  for (const [gec, name] of list) {
+    const key = `${gec}-${region}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      allCountries.push({ gec, name, region });
+    }
+  }
+}
+
+// Sort alphabetically
+allCountries.sort((a,b) => a.name.localeCompare(b.name));
+
+// ── Render region tabs ──
+const tabsEl = document.getElementById('region-tabs');
+
+function buildTabs() {
+  tabsEl.innerHTML = '';
+  const allBtn = document.createElement('button');
+  allBtn.className = 'region-btn' + (currentRegion === 'all' ? ' active' : '');
+  allBtn.textContent = '🌎 All';
+  allBtn.onclick = () => setRegion('all');
+  tabsEl.appendChild(allBtn);
+
+  for (const [slug, label] of Object.entries(REGIONS)) {
+    const btn = document.createElement('button');
+    btn.className = 'region-btn' + (currentRegion === slug ? ' active' : '');
+    btn.textContent = label;
+    btn.onclick = () => setRegion(slug);
+    tabsEl.appendChild(btn);
+  }
+}
+
+function setRegion(r) {
+  currentRegion = r;
+  buildTabs();
+  renderGrid();
+}
+
+// ── Render country grid ──
+const grid = document.getElementById('country-grid');
+
+function renderGrid() {
+  const q = searchQuery.trim().toLowerCase();
+  const filtered = allCountries.filter(c => {
+    const regionMatch = currentRegion === 'all' || c.region === currentRegion;
+    const searchMatch = !q || c.name.toLowerCase().includes(q);
+    return regionMatch && searchMatch;
+  });
+
+  // Deduplicate by gec in current view
+  const deduped = [];
+  const shown = new Set();
+  for (const c of filtered) {
+    if (!shown.has(c.gec)) {
+      shown.add(c.gec);
+      deduped.push(c);
+    }
+  }
+
+  if (deduped.length === 0) {
+    grid.innerHTML = `<div class="status" style="grid-column:1/-1"><span class="emoji">🤷</span>No countries found for "${searchQuery}"</div>`;
+    return;
+  }
+
+  grid.innerHTML = '';
+  for (const c of deduped) {
+    const card = document.createElement('div');
+    card.className = 'country-card';
+    card.innerHTML = `
+      <div class="flag">${gecToFlag(c.gec)}</div>
+      <div class="name">${c.name}</div>
+      <div class="region-label">${REGIONS[c.region] || c.region}</div>
+    `;
+    card.onclick = () => openDetail(c);
+    grid.appendChild(card);
+  }
+}
+
+// ── Search ──
+document.getElementById('search').addEventListener('input', e => {
+  searchQuery = e.target.value;
+  renderGrid();
+});
+
+// ── Detail panel ──
+const detailEl = document.getElementById('detail');
+const dFlag = document.getElementById('d-flag');
+const dName = document.getElementById('d-name');
+const dRegion = document.getElementById('d-region');
+const dBody = document.getElementById('d-body');
+
+document.getElementById('close-btn').onclick = closeDetail;
+detailEl.addEventListener('click', e => { if (e.target === detailEl) closeDetail(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
+
+function closeDetail() {
+  detailEl.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+async function openDetail(country) {
+  dFlag.textContent = gecToFlag(country.gec);
+  dName.textContent = country.name;
+  dRegion.textContent = REGIONS[country.region] || country.region;
+  dBody.innerHTML = `
+    <div class="skeleton" style="width:40%;height:12px;margin-bottom:16px"></div>
+    <div class="skeleton" style="width:100%;height:80px;margin-bottom:16px"></div>
+    <div class="skeleton" style="width:70%;height:12px;margin-bottom:8px"></div>
+    <div class="skeleton" style="width:90%;height:12px"></div>
+  `;
+  detailEl.classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  try {
+    const url = `${RAW}/${country.region}/${country.gec}.json`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Not found');
+    const data = await res.json();
+    renderDetail(data, country);
+  } catch(err) {
+    dBody.innerHTML = `<div class="status"><span class="emoji">😕</span>Couldn't load data for this country.<br><small>${err.message}</small></div>`;
+  }
+}
+
+function get(obj, ...keys) {
+  let cur = obj;
+  for (const k of keys) {
+    if (!cur || typeof cur !== 'object') return null;
+    cur = cur[k];
+  }
+  if (cur && typeof cur === 'object' && 'text' in cur) return cur.text;
+  return cur ?? null;
+}
+
+function renderDetail(d, country) {
+  const intro = get(d, 'Introduction', 'Background', 'text');
+  const capital = get(d, 'Government', 'Capital', 'name', 'text');
+  const govType = get(d, 'Government', 'Government type', 'text');
+  const popRaw = get(d, 'People and Society', 'Population', 'total', 'text')
+              || get(d, 'People and Society', 'Population', 'text');
+  const langRaw = get(d, 'People and Society', 'Languages', 'language')
+               || get(d, 'People and Society', 'Languages', 'text');
+  const langs = Array.isArray(langRaw)
+    ? langRaw.map(l => l.name || l).join(', ')
+    : (langRaw || '—');
+  const area = get(d, 'Geography', 'Area', 'total', 'text');
+  const climate = get(d, 'Geography', 'Climate', 'text');
+  const lifeExp = get(d, 'People and Society', 'Life expectancy at birth', 'total population', 'text');
+  const gdp = get(d, 'Economy', 'Real GDP (purchasing power parity)', 'Real GDP (purchasing power parity) 2023', 'text')
+           || get(d, 'Economy', 'Real GDP (purchasing power parity)', 'Real GDP (purchasing power parity) 2022', 'text')
+           || get(d, 'Economy', 'GDP (purchasing power parity)', 'text');
+  const currency = get(d, 'Economy', 'Currency', 'text')
+                || get(d, 'Economy', 'Currency(ies)', 'text');
+  const internet = get(d, 'Communications', 'Internet users', 'percent of population', 'text');
+  const bordering = get(d, 'Geography', 'Land boundaries', 'border countries', 'text');
+  const location = get(d, 'Geography', 'Location', 'text');
+  const natResources = get(d, 'Geography', 'Natural resources', 'text');
+
+  // Truncate blurb
+  const blurb = intro ? (intro.length > 500 ? intro.slice(0, 500).replace(/\w+$/, '') + '…' : intro) : null;
+
+  let html = '';
+
+  // Quick-fact tiles
+  const tiles = [
+    { icon:'🏙️', label:'Capital', value: capital, color:'blue' },
+    { icon:'👥', label:'Population', value: popRaw ? popRaw.replace(/\(.*\)/,'').trim() : null, color:'green' },
+    { icon:'📐', label:'Area', value: area, color:'amber' },
+    { icon:'💰', label:'GDP (PPP)', value: gdp ? gdp.split(' ')[0] + ' ' + (gdp.match(/trillion|billion|million/) || [''])[0] : null, color:'teal' },
+    { icon:'❤️', label:'Life expectancy', value: lifeExp, color:'coral' },
+    { icon:'🌐', label:'Internet users', value: internet ? internet + ' of people' : null, color:'purple' },
+  ].filter(t => t.value);
+
+  if (tiles.length) {
+    html += `<div class="fact-section"><h3>At a glance</h3><div class="fact-grid">`;
+    for (const t of tiles) {
+      html += `<div class="fact-tile ${t.color}">
+        <div class="fact-tile-icon">${t.icon}</div>
+        <div class="fact-tile-label">${t.label}</div>
+        <div class="fact-tile-value">${t.value}</div>
+      </div>`;
+    }
+    html += `</div></div>`;
+  }
+
+  // Text rows
+  const rows = [
+    { icon:'🗣️', label:'Languages', value: langs },
+    { icon:'🏛️', label:'Government', value: govType },
+    { icon:'📍', label:'Location', value: location },
+    { icon:'🌤️', label:'Climate', value: climate },
+    { icon:'⛏️', label:'Natural resources', value: natResources },
+    { icon:'🤝', label:'Borders', value: bordering },
+    { icon:'💵', label:'Currency', value: currency },
+  ].filter(r => r.value);
+
+  if (rows.length) {
+    html += `<div class="fact-section"><h3>More facts</h3>`;
+    for (const r of rows) {
+      const val = r.value.length > 180 ? r.value.slice(0,180).replace(/\w+$/,'') + '…' : r.value;
+      html += `<div class="fact-text-row">
+        <span class="row-icon">${r.icon}</span>
+        <span class="row-label">${r.label}</span>
+        <span class="row-value">${val}</span>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+
+  // Background blurb
+  if (blurb) {
+    html += `<div class="fact-section"><h3>Background</h3><div class="blurb-box">${blurb}</div></div>`;
+  }
+
+  if (!html) {
+    html = `<div class="status"><span class="emoji">📭</span>No detailed data available for this entry.</div>`;
+  }
+
+  dBody.innerHTML = html;
+}
+
+// ── Init ──
+buildTabs();
+renderGrid();
+</script>
+</body>
+</html>
