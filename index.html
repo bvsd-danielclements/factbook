@@ -1,0 +1,1450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>World Explorer</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Slab:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ── BVSD Brand Colors ── */
+  :root {
+    --bvsd-blue:       #0e395d;
+    --bvsd-med-blue:   #0060a9;
+    --bvsd-light-blue: #66a0cb;
+    --bvsd-pale-blue:  #ccdfee;
+    --bvsd-dark:       #051c2e;
+    --bvsd-green:      #20B688;
+    --bvsd-amber:      #e6a026;
+    --bvsd-yellow:     #F5E104;
+    --bvsd-purple:     #5c144a;
+    --bvsd-brown:      #b66828;
+    --text:            #282829;
+    --text-muted:      #7e8083;
+    --surface:         #f4f7fa;
+    --card:            #ffffff;
+    --border:          #c8c8c8;
+    --radius:          14px;
+    --radius-sm:       8px;
+  }
+
+  body {
+    font-family: 'Roboto', Arial, sans-serif;
+    background: var(--surface);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--bvsd-blue);
+    color: white;
+    padding: 2rem 1.5rem 3.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  /* Subtle diagonal accent strip using medium blue */
+  header::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 45%;
+    height: 100%;
+    background: var(--bvsd-dark);
+    clip-path: polygon(18% 0, 100% 0, 100% 100%, 0% 100%);
+    opacity: 0.45;
+  }
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0; right: 0;
+    height: 36px;
+    background: var(--surface);
+    border-radius: 36px 36px 0 0;
+  }
+  .header-inner { max-width: 860px; margin: 0 auto; position: relative; z-index: 1; }
+
+  /* BVSD wordmark strip */
+  .bvsd-wordmark {
+    font-family: 'Roboto', Arial, sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--bvsd-pale-blue);
+    margin-bottom: 0.6rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .bvsd-wordmark::before {
+    content: '';
+    display: inline-block;
+    width: 28px; height: 3px;
+    background: var(--bvsd-light-blue);
+    border-radius: 2px;
+  }
+
+  header h1 {
+    font-family: 'Roboto Slab', Georgia, serif;
+    font-size: clamp(1.8rem, 5vw, 2.8rem);
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    line-height: 1.1;
+    margin-bottom: 0.4rem;
+    color: #ffffff;
+  }
+  header p {
+    font-size: 1rem;
+    color: var(--bvsd-pale-blue);
+    font-weight: 400;
+  }
+
+  /* Globe decoration */
+  .globe {
+    position: absolute;
+    right: 24px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 72px;
+    opacity: 0.18;
+    z-index: 0;
+    line-height: 1;
+  }
+
+  /* ── Main layout ── */
+  main { max-width: 860px; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+
+  /* ── Search bar ── */
+  .search-wrap {
+    position: relative;
+    margin-bottom: 1.25rem;
+  }
+  .search-icon {
+    position: absolute;
+    left: 1rem; top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    pointer-events: none;
+  }
+  #search {
+    width: 100%;
+    padding: 0.85rem 1rem 0.85rem 3rem;
+    font-family: 'Roboto', Arial, sans-serif;
+    font-size: 1rem;
+    font-weight: 400;
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  #search:focus {
+    border-color: var(--bvsd-med-blue);
+    box-shadow: 0 0 0 4px rgba(0,96,169,0.12);
+  }
+  #search::placeholder { color: var(--text-muted); }
+
+  /* ── Region tabs ── */
+  .regions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+  }
+  .region-btn {
+    padding: 0.4rem 0.95rem;
+    border-radius: 999px;
+    border: 2px solid var(--border);
+    background: var(--card);
+    font-family: 'Roboto', Arial, sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .region-btn:hover {
+    border-color: var(--bvsd-med-blue);
+    color: var(--bvsd-med-blue);
+  }
+  .region-btn.active {
+    background: var(--bvsd-blue);
+    border-color: var(--bvsd-blue);
+    color: white;
+  }
+
+  /* ── Country grid ── */
+  #country-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 2rem;
+  }
+  .country-card {
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.1rem 1rem;
+    cursor: pointer;
+    transition: all 0.18s;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .country-card:hover {
+    border-color: var(--bvsd-med-blue);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,96,169,0.13);
+  }
+  .country-card .flag { font-size: 28px; margin-bottom: 4px; }
+  .country-card .name {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--bvsd-blue);
+    line-height: 1.2;
+  }
+  .country-card .region-label {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  /* ── Status messages ── */
+  .status {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-muted);
+    font-size: 1rem;
+    grid-column: 1 / -1;
+  }
+  .status .emoji { font-size: 3rem; display: block; margin-bottom: 0.75rem; }
+
+  /* ── Country detail panel ── */
+  #detail {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(5, 28, 46, 0.6);
+    backdrop-filter: blur(4px);
+    padding: 1rem;
+    overflow-y: auto;
+  }
+  #detail.open { display: flex; align-items: flex-start; justify-content: center; }
+  .detail-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    width: 100%;
+    max-width: 640px;
+    margin: auto;
+    overflow: hidden;
+    animation: slideUp 0.22s ease;
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .detail-header {
+    background: var(--bvsd-blue);
+    color: white;
+    padding: 1.5rem;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .detail-header::after {
+    content: '';
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    width: 35%;
+    background: var(--bvsd-dark);
+    clip-path: polygon(25% 0, 100% 0, 100% 100%, 0% 100%);
+    opacity: 0.4;
+  }
+  .detail-header > * { position: relative; z-index: 1; }
+  .detail-flag { font-size: 52px; line-height: 1; }
+  .detail-name {
+    font-family: 'Roboto Slab', Georgia, serif;
+    font-size: 1.7rem;
+    font-weight: 700;
+    line-height: 1.1;
+    flex: 1;
+  }
+  .detail-region {
+    font-size: 0.82rem;
+    color: var(--bvsd-pale-blue);
+    font-weight: 500;
+    margin-top: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .close-btn {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    font-size: 1.1rem;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s;
+  }
+  .close-btn:hover { background: rgba(255,255,255,0.28); }
+
+  .detail-body { padding: 1.5rem; }
+
+  /* Fact sections */
+  .fact-section { margin-bottom: 1.5rem; }
+  .fact-section h3 {
+    font-family: 'Roboto', Arial, sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--bvsd-med-blue);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 2px solid var(--bvsd-pale-blue);
+  }
+  .fact-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+  }
+  .fact-tile {
+    border-radius: var(--radius-sm);
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  /* BVSD-palette tiles */
+  .fact-tile.blue   { background: var(--bvsd-pale-blue); }
+  .fact-tile.green  { background: #d4f2e8; }
+  .fact-tile.amber  { background: #fdefd0; }
+  .fact-tile.coral  { background: #fce8d4; }
+  .fact-tile.purple { background: #ead8e5; }
+  .fact-tile.teal   { background: #cceee6; }
+  .fact-tile-icon { font-size: 16px; }
+  .fact-tile-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--bvsd-blue);
+    margin-top: 5px;
+    opacity: 0.75;
+  }
+  .fact-tile-value {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--bvsd-blue);
+    line-height: 1.3;
+  }
+
+  /* Text fact rows */
+  .fact-text-row {
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+  .fact-text-row:last-child { border-bottom: none; }
+  .fact-text-row .row-icon { font-size: 15px; flex-shrink: 0; margin-top: 2px; }
+  .fact-text-row .row-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--bvsd-med-blue);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    min-width: 95px;
+    flex-shrink: 0;
+  }
+  .fact-text-row .row-value {
+    font-size: 0.88rem;
+    font-weight: 400;
+    color: var(--text);
+    flex: 1;
+  }
+
+  /* Background blurb */
+  .blurb-box {
+    background: var(--bvsd-pale-blue);
+    border-left: 4px solid var(--bvsd-med-blue);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    padding: 1rem 1.1rem;
+    font-size: 0.88rem;
+    font-weight: 400;
+    color: var(--bvsd-dark);
+    line-height: 1.7;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+
+  /* Loading skeleton */
+  .skeleton {
+    background: linear-gradient(90deg, #dde8f0 25%, #eef3f8 50%, #dde8f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.2s infinite;
+    border-radius: 6px;
+    height: 1em;
+    margin: 4px 0;
+  }
+  @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+  /* ── Compare tray (sticky bottom bar) ── */
+  #compare-tray {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 90;
+    background: var(--bvsd-blue);
+    color: white;
+    padding: 0.75rem 1.25rem;
+    display: none;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 -4px 24px rgba(5,28,46,0.25);
+    flex-wrap: wrap;
+  }
+  #compare-tray.visible { display: flex; }
+  .tray-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--bvsd-pale-blue);
+    flex-shrink: 0;
+  }
+  .tray-slots {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+    flex-wrap: wrap;
+  }
+  .tray-slot {
+    background: rgba(255,255,255,0.12);
+    border: 2px dashed rgba(255,255,255,0.3);
+    border-radius: 999px;
+    padding: 0.3rem 0.85rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: rgba(255,255,255,0.5);
+    min-width: 90px;
+    text-align: center;
+  }
+  .tray-slot.filled {
+    background: rgba(255,255,255,0.18);
+    border-style: solid;
+    border-color: rgba(255,255,255,0.5);
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .tray-slot .remove-x {
+    cursor: pointer;
+    opacity: 0.7;
+    font-size: 0.75rem;
+    line-height: 1;
+  }
+  .tray-slot .remove-x:hover { opacity: 1; }
+  .tray-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .tray-btn {
+    padding: 0.4rem 1rem;
+    border-radius: 999px;
+    font-family: 'Roboto', Arial, sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 2px solid transparent;
+  }
+  .tray-btn.primary {
+    background: white;
+    color: var(--bvsd-blue);
+  }
+  .tray-btn.primary:hover { background: var(--bvsd-pale-blue); }
+  .tray-btn.primary:disabled { opacity: 0.4; cursor: default; }
+  .tray-btn.ghost {
+    background: transparent;
+    color: rgba(255,255,255,0.7);
+    border-color: rgba(255,255,255,0.3);
+  }
+  .tray-btn.ghost:hover { color: white; border-color: white; }
+
+  /* country card selected state */
+  .country-card.in-compare {
+    border-color: var(--bvsd-med-blue);
+    background: var(--bvsd-pale-blue);
+  }
+  .country-card .compare-btn {
+    margin-top: 6px;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    font-family: 'Roboto', Arial, sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    align-self: flex-start;
+  }
+  .country-card .compare-btn:hover,
+  .country-card.in-compare .compare-btn {
+    border-color: var(--bvsd-med-blue);
+    color: var(--bvsd-med-blue);
+    background: white;
+  }
+  .country-card.in-compare .compare-btn {
+    background: var(--bvsd-med-blue);
+    color: white;
+    border-color: var(--bvsd-med-blue);
+  }
+
+  /* ── Compare panel (full overlay) ── */
+  #compare-panel {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 110;
+    background: rgba(5,28,46,0.65);
+    backdrop-filter: blur(4px);
+    padding: 1rem;
+    overflow-y: auto;
+  }
+  #compare-panel.open { display: flex; align-items: flex-start; justify-content: center; }
+  .compare-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    width: 100%;
+    max-width: 900px;
+    margin: auto;
+    overflow: hidden;
+    animation: slideUp 0.22s ease;
+  }
+  .compare-header {
+    background: var(--bvsd-blue);
+    color: white;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .compare-header h2 {
+    font-family: 'Roboto Slab', Georgia, serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+  }
+  .compare-body { padding: 1.5rem; overflow-x: auto; }
+
+  /* Columns per country */
+  .compare-grid {
+    display: grid;
+    gap: 0;
+    min-width: 400px;
+  }
+  .compare-row {
+    display: grid;
+    gap: 1px;
+    background: var(--border);
+    border-radius: 6px;
+    margin-bottom: 2px;
+    overflow: hidden;
+  }
+  .compare-row.header-row {
+    background: transparent;
+    margin-bottom: 8px;
+  }
+  .compare-cell {
+    background: var(--card);
+    padding: 0.6rem 0.75rem;
+    font-size: 0.88rem;
+    color: var(--text);
+  }
+  .compare-cell.label-cell {
+    background: var(--surface);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--bvsd-med-blue);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .compare-cell.country-header {
+    background: var(--bvsd-pale-blue);
+    text-align: center;
+    padding: 0.75rem 0.5rem;
+  }
+  .compare-cell.country-header .ch-flag { font-size: 28px; display: block; }
+  .compare-cell.country-header .ch-name {
+    font-family: 'Roboto Slab', Georgia, serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--bvsd-blue);
+    line-height: 1.2;
+    margin-top: 4px;
+    display: block;
+  }
+
+  /* Bar chart rows */
+  .bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+  .bar-track {
+    flex: 1;
+    height: 8px;
+    background: var(--bvsd-pale-blue);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    background: var(--bvsd-med-blue);
+    border-radius: 4px;
+    transition: width 0.5s ease;
+  }
+  .bar-fill.winner { background: var(--bvsd-green); }
+  .bar-val {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--bvsd-blue);
+    white-space: nowrap;
+    min-width: 60px;
+    text-align: right;
+  }
+
+  /* ── Deep Dive side panel ── */
+  #deep-dive {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: min(480px, 100vw);
+    z-index: 95;
+    background: var(--card);
+    box-shadow: -6px 0 32px rgba(5,28,46,0.18);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(110%);
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  }
+  #deep-dive.open { transform: translateX(0); }
+
+  .dd-header {
+    background: var(--bvsd-blue);
+    color: white;
+    padding: 1.1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .dd-header::after {
+    content: '';
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    width: 30%;
+    background: var(--bvsd-dark);
+    clip-path: polygon(30% 0, 100% 0, 100% 100%, 0% 100%);
+    opacity: 0.4;
+  }
+  .dd-header > * { position: relative; z-index: 1; }
+  .dd-flag { font-size: 32px; line-height: 1; flex-shrink: 0; }
+  .dd-title-wrap { flex: 1; min-width: 0; }
+  .dd-name {
+    font-family: 'Roboto Slab', Georgia, serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .dd-subtitle {
+    font-size: 0.72rem;
+    color: var(--bvsd-pale-blue);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 2px;
+  }
+
+  .dd-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+  }
+
+  /* Section accordions */
+  .dd-section { border-bottom: 1px solid var(--border); }
+  .dd-section-btn {
+    width: 100%;
+    padding: 0.85rem 1.25rem;
+    background: var(--surface);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s;
+  }
+  .dd-section-btn:hover { background: var(--bvsd-pale-blue); }
+  .dd-section-btn.active { background: var(--bvsd-pale-blue); }
+  .dd-section-title {
+    font-family: 'Roboto', Arial, sans-serif;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--bvsd-blue);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .dd-section-count {
+    font-size: 0.7rem;
+    background: var(--bvsd-med-blue);
+    color: white;
+    border-radius: 999px;
+    padding: 1px 7px;
+    font-weight: 700;
+  }
+  .dd-chevron {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+  .dd-section-btn.active .dd-chevron { transform: rotate(180deg); }
+
+  .dd-section-body {
+    display: none;
+    padding: 0 1.25rem 0.75rem;
+    background: var(--card);
+  }
+  .dd-section-body.open { display: block; }
+
+  /* Field rows inside section */
+  .dd-field {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    gap: 0.5rem;
+    align-items: start;
+  }
+  .dd-field:last-child { border-bottom: none; }
+  .dd-field-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--bvsd-med-blue);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.4;
+    padding-top: 1px;
+  }
+  .dd-field-value {
+    font-size: 0.82rem;
+    color: var(--text);
+    line-height: 1.55;
+  }
+
+  /* Section icons */
+  .dd-icon { font-size: 14px; }
+
+  /* When deep dive is open, shrink main on wide screens */
+  @media (min-width: 860px) {
+    body.dd-open main { padding-right: calc(min(480px, 100vw) + 1.5rem); }
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 500px) {
+    #country-grid { grid-template-columns: repeat(2, 1fr); }
+    .detail-name { font-size: 1.35rem; }
+    .detail-flag { font-size: 40px; }
+    main { padding-bottom: 6rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="globe">🌍</div>
+  <div class="header-inner">
+    <div class="bvsd-wordmark">Boulder Valley School District</div>
+    <h1>World Explorer</h1>
+    <p>Discover every country on Earth</p>
+  </div>
+</header>
+
+<main>
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="search" placeholder="Search for a country..." autocomplete="off" spellcheck="false">
+  </div>
+
+  <div class="regions" id="region-tabs"></div>
+
+  <div id="country-grid">
+    <div class="status"><span class="emoji">🌐</span>Loading countries…</div>
+  </div>
+</main>
+
+<!-- Compare tray (sticky bottom) -->
+<div id="compare-tray">
+  <span class="tray-label">Compare</span>
+  <div class="tray-slots" id="tray-slots"></div>
+  <div class="tray-actions">
+    <button class="tray-btn primary" id="tray-compare-btn" disabled>Compare</button>
+    <button class="tray-btn ghost" id="tray-clear-btn">Clear</button>
+  </div>
+</div>
+
+<!-- Compare panel (full overlay) -->
+<div id="compare-panel">
+  <div class="compare-card">
+    <div class="compare-header">
+      <h2>Country Comparison</h2>
+      <button class="close-btn" id="compare-close-btn">✕</button>
+    </div>
+    <div class="compare-body" id="compare-body">
+    </div>
+  </div>
+</div>
+
+<!-- Detail overlay -->
+<div id="detail">
+  <div class="detail-card" id="detail-card">
+    <div class="detail-header">
+      <div>
+        <div class="detail-flag" id="d-flag"></div>
+        <div class="detail-name" id="d-name"></div>
+        <div class="detail-region" id="d-region"></div>
+      </div>
+      <div style="display:flex;gap:8px;position:relative;z-index:1;">
+        <button class="tray-btn primary" id="detail-compare-btn" style="font-size:0.78rem;padding:0.3rem 0.8rem;">+ Compare</button>
+        <button class="tray-btn primary" id="detail-deepdive-btn" style="font-size:0.78rem;padding:0.3rem 0.8rem;background:var(--bvsd-green);color:white;border-color:var(--bvsd-green);">Deep Dive ›</button>
+        <button class="close-btn" id="close-btn">✕</button>
+      </div>
+    </div>
+    <div class="detail-body" id="d-body">
+      <div class="skeleton" style="width:60%;height:14px"></div>
+      <div class="skeleton" style="width:80%;height:14px;margin-top:8px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Deep Dive side panel -->
+<div id="deep-dive">
+  <div class="dd-header">
+    <div class="dd-flag" id="dd-flag"></div>
+    <div class="dd-title-wrap">
+      <div class="dd-name" id="dd-name"></div>
+      <div class="dd-subtitle">Deep Dive</div>
+    </div>
+    <button class="close-btn" id="dd-close-btn">✕</button>
+  </div>
+  <div class="dd-body" id="dd-body">
+    <div class="skeleton" style="height:48px;margin:8px 16px;border-radius:8px"></div>
+    <div class="skeleton" style="height:48px;margin:8px 16px;border-radius:8px"></div>
+    <div class="skeleton" style="height:48px;margin:8px 16px;border-radius:8px"></div>
+  </div>
+</div>
+
+<script>
+const RAW = '.';
+
+const REGIONS = {
+  africa: 'Africa',
+  antarctica: 'Antarctica',
+  'australia-oceania': 'Oceania',
+  'central-america-n-caribbean': 'Caribbean & C. America',
+  'central-asia': 'Central Asia',
+  'east-n-southeast-asia': 'East & SE Asia',
+  europe: 'Europe',
+  'middle-east': 'Middle East',
+  'north-america': 'North America',
+  'south-america': 'South America',
+  'south-asia': 'South Asia',
+  oceans: 'Oceans',
+  world: 'World',
+};
+
+const GEC_TO_ISO = {"af":"AF","al":"AL","ag":"DZ","an":"AD","ao":"AO","ac":"AG","ar":"AR","am":"AM","as":"AU","au":"AT","aj":"AZ","bf":"BS","ba":"BH","bg":"BD","bb":"BB","bo":"BY","be":"BE","bh":"BZ","bn":"BJ","bt":"BT","bl":"BO","bk":"BA","bc":"BW","br":"BR","bx":"BN","bu":"BG","uv":"BF","bm":"MM","by":"BI","cb":"KH","cm":"CM","ca":"CA","cv":"CV","ct":"CF","cd":"TD","ci":"CL","ch":"CN","co":"CO","cn":"KM","cg":"CD","cf":"CG","cs":"CR","iv":"CI","hr":"HR","cu":"CU","cy":"CY","ez":"CZ","da":"DK","dj":"DJ","do":"DM","dr":"DO","ec":"EC","eg":"EG","es":"SV","ek":"GQ","er":"ER","en":"EE","wz":"SZ","et":"ET","fj":"FJ","fi":"FI","fr":"FR","gb":"GA","ga":"GM","gg":"GE","gm":"DE","gh":"GH","gr":"GR","gj":"GD","gt":"GT","gv":"GN","pu":"GW","gy":"GY","ha":"HT","ho":"HN","hu":"HU","ic":"IS","in":"IN","id":"ID","ir":"IR","iz":"IQ","ei":"IE","is":"IL","it":"IT","jm":"JM","ja":"JP","jo":"JO","kz":"KZ","ke":"KE","kr":"KI","kn":"KP","ks":"KR","kv":"XK","ku":"KW","kg":"KG","la":"LA","lg":"LV","le":"LB","lt":"LS","li":"LR","ly":"LY","ls":"LI","lh":"LT","lu":"LU","ma":"MG","mi":"MW","my":"MY","mv":"MV","ml":"ML","mt":"MT","rm":"MH","mr":"MR","mp":"MU","mx":"MX","fm":"FM","md":"MD","mn":"MC","mg":"MN","mj":"ME","mo":"MA","mz":"MZ","wa":"NA","nr":"NR","np":"NP","nl":"NL","nz":"NZ","nu":"NI","ng":"NE","ni":"NG","no":"NO","mk":"MK","mu":"OM","pk":"PK","ps":"PW","pm":"PA","pp":"PG","pa":"PY","pe":"PE","rp":"PH","pl":"PL","po":"PT","qa":"QA","ro":"RO","rs":"RU","rw":"RW","sc":"KN","st":"LC","vc":"VC","ws":"WS","sm":"SM","tp":"ST","sa":"SA","sg":"SG","ri":"RS","se":"SC","sl":"SL","sn":"SG","lo":"SK","si":"SI","bp":"SB","so":"SO","sf":"ZA","od":"SS","sp":"ES","ce":"LK","su":"SD","ns":"SR","sw":"SE","sz":"CH","sy":"SY","ti":"TJ","tz":"TZ","th":"TH","tt":"TL","to":"TG","tn":"TO","td":"TT","ts":"TN","tu":"TR","tx":"TM","tv":"TV","ug":"UG","up":"UA","ae":"AE","uk":"GB","us":"US","uy":"UY","uz":"UZ","nh":"VU","vt":"VA","ve":"VE","vm":"VN","ym":"YE","za":"ZM","zi":"ZW","tw":"TW","ee":"EU","gl":"GL","fo":"FO","hk":"HK","mc":"MO","fp":"PF","nc":"NC","aq":"AS","gq":"GU","rq":"PR","vq":"VI"};
+
+function emojiFlag(iso) {
+  if (!iso || iso.length !== 2) return '\u{1F310}';
+  const cp = [...iso.toUpperCase()].map(c => 0x1F1E6 + c.charCodeAt(0) - 65);
+  return String.fromCodePoint(...cp);
+}
+function gecToFlag(gec) { const iso = GEC_TO_ISO[gec]; return iso ? emojiFlag(iso) : '\u{1F310}'; }
+
+const COUNTRY_INDEX = {
+  africa: [
+    ["ag","Algeria"],["ao","Angola"],["bn","Benin"],["bc","Botswana"],["uv","Burkina Faso"],
+    ["bm","Burma"],["by","Burundi"],["cm","Cameroon"],["cv","Cabo Verde"],["ct","Central African Republic"],
+    ["cd","Chad"],["cn","Comoros"],["cf","Congo"],["cg","Congo DR"],["dj","Djibouti"],
+    ["eg","Egypt"],["ek","Equatorial Guinea"],["er","Eritrea"],["et","Ethiopia"],["wz","Eswatini"],
+    ["gb","Gabon"],["ga","The Gambia"],["gh","Ghana"],["gv","Guinea"],["pu","Guinea-Bissau"],
+    ["iv","Cote d\'Ivoire"],["ke","Kenya"],["lt","Lesotho"],["li","Liberia"],["ly","Libya"],
+    ["ma","Madagascar"],["mi","Malawi"],["ml","Mali"],["mr","Mauritania"],["mp","Mauritius"],
+    ["mo","Morocco"],["mz","Mozambique"],["wa","Namibia"],["ng","Niger"],["ni","Nigeria"],
+    ["rw","Rwanda"],["tp","Sao Tome and Principe"],["sg","Senegal"],["se","Seychelles"],
+    ["sl","Sierra Leone"],["so","Somalia"],["sf","South Africa"],["od","South Sudan"],["su","Sudan"],
+    ["tz","Tanzania"],["to","Togo"],["ts","Tunisia"],["ug","Uganda"],["za","Zambia"],["zi","Zimbabwe"]
+  ],
+  antarctica: [["ay","Antarctica"]],
+  "australia-oceania": [
+    ["as","Australia"],["fj","Fiji"],["kr","Kiribati"],["rm","Marshall Islands"],["fm","Micronesia"],
+    ["nr","Nauru"],["nz","New Zealand"],["ps","Palau"],["pp","Papua New Guinea"],["ws","Samoa"],
+    ["bp","Solomon Islands"],["tn","Tonga"],["tv","Tuvalu"],["nh","Vanuatu"],
+    ["kt","Christmas Island"],["ck","Cocos (Keeling) Islands"],["nf","Norfolk Island"],
+    ["cw","Cook Islands"],["ne","Niue"],["tl","Tokelau"],["fp","French Polynesia"],["nc","New Caledonia"],["wf","Wallis and Futuna"]
+  ],
+  "central-america-n-caribbean": [
+    ["ac","Antigua and Barbuda"],["bf","The Bahamas"],["bb","Barbados"],["bh","Belize"],
+    ["cs","Costa Rica"],["cu","Cuba"],["do","Dominica"],["dr","Dominican Republic"],
+    ["es","El Salvador"],["gj","Grenada"],["gt","Guatemala"],["ha","Haiti"],["ho","Honduras"],
+    ["jm","Jamaica"],["nu","Nicaragua"],["pm","Panama"],["sc","Saint Kitts and Nevis"],
+    ["st","Saint Lucia"],["vc","Saint Vincent and the Grenadines"],["td","Trinidad and Tobago"],
+    ["av","Anguilla"],["bd","Bermuda"],["vi","British Virgin Islands"],["cj","Cayman Islands"],
+    ["mh","Montserrat"],["tk","Turks and Caicos Islands"],["aa","Aruba"],["uc","Curacao"],
+    ["nn","Sint Maarten"],["rq","Puerto Rico"],["vq","US Virgin Islands"]
+  ],
+  "central-asia": [["kz","Kazakhstan"],["kg","Kyrgyzstan"],["ti","Tajikistan"],["tx","Turkmenistan"],["uz","Uzbekistan"]],
+  "east-n-southeast-asia": [
+    ["bx","Brunei"],["cb","Cambodia"],["ch","China"],["id","Indonesia"],["ja","Japan"],
+    ["kn","North Korea"],["ks","South Korea"],["la","Laos"],["my","Malaysia"],["mg","Mongolia"],
+    ["rp","Philippines"],["sn","Singapore"],["th","Thailand"],["tt","Timor-Leste"],["vm","Vietnam"],
+    ["tw","Taiwan"],["hk","Hong Kong"],["mc","Macau"]
+  ],
+  europe: [
+    ["al","Albania"],["an","Andorra"],["au","Austria"],["bo","Belarus"],["be","Belgium"],
+    ["bk","Bosnia and Herzegovina"],["bu","Bulgaria"],["hr","Croatia"],["cy","Cyprus"],
+    ["ez","Czechia"],["da","Denmark"],["en","Estonia"],["fi","Finland"],["fr","France"],
+    ["gm","Germany"],["gr","Greece"],["hu","Hungary"],["ic","Iceland"],["ei","Ireland"],
+    ["it","Italy"],["kv","Kosovo"],["lg","Latvia"],["ls","Liechtenstein"],["lh","Lithuania"],
+    ["lu","Luxembourg"],["mk","North Macedonia"],["mt","Malta"],["mn","Monaco"],["mj","Montenegro"],
+    ["nl","Netherlands"],["no","Norway"],["pl","Poland"],["po","Portugal"],["ro","Romania"],
+    ["rs","Russia"],["sm","San Marino"],["ri","Serbia"],["lo","Slovakia"],["si","Slovenia"],
+    ["sp","Spain"],["sw","Sweden"],["sz","Switzerland"],["uk","United Kingdom"],["vt","Vatican City"],
+    ["up","Ukraine"],["md","Moldova"],["am","Armenia"],["aj","Azerbaijan"],["gg","Georgia"],
+    ["fo","Faroe Islands"],["gl","Greenland"],["gk","Guernsey"],["je","Jersey"],["im","Isle of Man"],
+    ["gi","Gibraltar"],["ee","European Union"]
+  ],
+  "middle-east": [
+    ["ba","Bahrain"],["ir","Iran"],["iz","Iraq"],["is","Israel"],["jo","Jordan"],["ku","Kuwait"],
+    ["le","Lebanon"],["mu","Oman"],["qa","Qatar"],["sa","Saudi Arabia"],["sy","Syria"],
+    ["ae","United Arab Emirates"],["ym","Yemen"],["we","West Bank"],["gz","Gaza Strip"],["tu","Turkey"]
+  ],
+  "north-america": [["ca","Canada"],["mx","Mexico"],["us","United States"],["aq","American Samoa"],["gq","Guam"],["cq","Northern Mariana Islands"],["wq","Wake Island"]],
+  "south-america": [
+    ["ar","Argentina"],["bl","Bolivia"],["br","Brazil"],["ci","Chile"],["co","Colombia"],
+    ["ec","Ecuador"],["gy","Guyana"],["pa","Paraguay"],["pe","Peru"],["ns","Suriname"],
+    ["uy","Uruguay"],["ve","Venezuela"],["fk","Falkland Islands"]
+  ],
+  "south-asia": [["af","Afghanistan"],["bg","Bangladesh"],["bt","Bhutan"],["in","India"],["mv","Maldives"],["np","Nepal"],["pk","Pakistan"],["ce","Sri Lanka"]],
+  oceans: [["xq","Arctic Ocean"],["zh","Atlantic Ocean"],["xo","Indian Ocean"],["zn","Pacific Ocean"],["oo","Southern Ocean"]],
+  world: [["xx","World"]]
+};
+
+// ── State ──
+let currentRegion = 'all';
+let searchQuery = '';
+let currentDetailCountry = null;
+
+const allCountries = [];
+const seenGec = new Set();
+for (const [region, list] of Object.entries(COUNTRY_INDEX)) {
+  for (const [gec, name] of list) {
+    if (!seenGec.has(gec)) { seenGec.add(gec); allCountries.push({ gec, name, region }); }
+  }
+}
+allCountries.sort((a,b) => a.name.localeCompare(b.name));
+
+// ── Compare state ──
+const compareList = [];
+const MAX_COMPARE = 3;
+function isInCompare(gec) { return compareList.some(c => c.gec === gec); }
+
+function addToCompare(country) {
+  if (isInCompare(country.gec) || compareList.length >= MAX_COMPARE) return;
+  compareList.push({ ...country, data: null });
+  updateTray(); renderGrid(); updateDetailCompareBtn();
+}
+function removeFromCompare(gec) {
+  const i = compareList.findIndex(c => c.gec === gec);
+  if (i !== -1) compareList.splice(i, 1);
+  updateTray(); renderGrid(); updateDetailCompareBtn();
+}
+function clearCompare() { compareList.length = 0; updateTray(); renderGrid(); updateDetailCompareBtn(); }
+
+function updateDetailCompareBtn() {
+  const btn = document.getElementById('detail-compare-btn');
+  if (!btn || !currentDetailCountry) return;
+  const inC = isInCompare(currentDetailCountry.gec);
+  const full = !inC && compareList.length >= MAX_COMPARE;
+  btn.textContent = inC ? '\u2713 Added' : full ? 'Compare full' : '+ Compare';
+  btn.disabled = full;
+  btn.style.opacity = full ? '0.5' : '1';
+}
+
+function updateTray() {
+  const tray = document.getElementById('compare-tray');
+  const slots = document.getElementById('tray-slots');
+  const compareBtn = document.getElementById('tray-compare-btn');
+  if (compareList.length === 0) { tray.classList.remove('visible'); return; }
+  tray.classList.add('visible');
+  slots.innerHTML = '';
+  for (let i = 0; i < MAX_COMPARE; i++) {
+    const slot = document.createElement('div');
+    if (compareList[i]) {
+      const c = compareList[i];
+      slot.className = 'tray-slot filled';
+      slot.innerHTML = gecToFlag(c.gec) + ' ' + c.name + ' <span class="remove-x" data-gec="' + c.gec + '">✕</span>';
+      slot.querySelector('.remove-x').onclick = (e) => { e.stopPropagation(); removeFromCompare(c.gec); };
+    } else {
+      slot.className = 'tray-slot';
+      slot.textContent = 'Slot ' + (i+1);
+    }
+    slots.appendChild(slot);
+  }
+  compareBtn.disabled = compareList.length < 2;
+}
+
+// ── Region tabs ──
+const tabsEl = document.getElementById('region-tabs');
+function buildTabs() {
+  tabsEl.innerHTML = '';
+  const allBtn = document.createElement('button');
+  allBtn.className = 'region-btn' + (currentRegion === 'all' ? ' active' : '');
+  allBtn.textContent = '\u{1F30E} All';
+  allBtn.onclick = () => setRegion('all');
+  tabsEl.appendChild(allBtn);
+  for (const [slug, label] of Object.entries(REGIONS)) {
+    const btn = document.createElement('button');
+    btn.className = 'region-btn' + (currentRegion === slug ? ' active' : '');
+    btn.textContent = label;
+    btn.onclick = () => setRegion(slug);
+    tabsEl.appendChild(btn);
+  }
+}
+function setRegion(r) { currentRegion = r; buildTabs(); renderGrid(); }
+
+// ── Country grid ──
+const grid = document.getElementById('country-grid');
+function renderGrid() {
+  const q = searchQuery.trim().toLowerCase();
+  const filtered = allCountries.filter(c => {
+    return (currentRegion === 'all' || c.region === currentRegion) && (!q || c.name.toLowerCase().includes(q));
+  });
+  if (filtered.length === 0) {
+    grid.innerHTML = '<div class="status" style="grid-column:1/-1"><span class="emoji">\u{1F937}</span>No countries found.</div>';
+    return;
+  }
+  grid.innerHTML = '';
+  for (const c of filtered) {
+    const inC = isInCompare(c.gec);
+    const full = !inC && compareList.length >= MAX_COMPARE;
+    const card = document.createElement('div');
+    card.className = 'country-card' + (inC ? ' in-compare' : '');
+    card.innerHTML =
+      '<div class="flag">' + gecToFlag(c.gec) + '</div>' +
+      '<div class="name">' + c.name + '</div>' +
+      '<div class="region-label">' + (REGIONS[c.region] || c.region) + '</div>' +
+      '<button class="compare-btn"' + (full ? ' disabled style="opacity:0.4"' : '') + '>' +
+        (inC ? '\u2713 Comparing' : '+ Compare') +
+      '</button>';
+    card.querySelector('.compare-btn').onclick = (e) => {
+      e.stopPropagation();
+      if (inC) removeFromCompare(c.gec); else addToCompare(c);
+    };
+    card.onclick = () => openDetail(c);
+    grid.appendChild(card);
+  }
+}
+
+document.getElementById('search').addEventListener('input', e => { searchQuery = e.target.value; renderGrid(); });
+
+// ── Detail panel ──
+const detailEl = document.getElementById('detail');
+const dFlag = document.getElementById('d-flag');
+const dName = document.getElementById('d-name');
+const dRegion = document.getElementById('d-region');
+const dBody = document.getElementById('d-body');
+
+document.getElementById('close-btn').onclick = closeDetail;
+detailEl.addEventListener('click', e => { if (e.target === detailEl) closeDetail(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeDetail(); closeCompare(); } });
+
+function closeDetail() { detailEl.classList.remove('open'); document.body.style.overflow = ''; currentDetailCountry = null; }
+
+document.getElementById('detail-compare-btn').onclick = () => {
+  if (!currentDetailCountry) return;
+  if (isInCompare(currentDetailCountry.gec)) removeFromCompare(currentDetailCountry.gec);
+  else addToCompare(currentDetailCountry);
+};
+
+async function openDetail(country) {
+  currentDetailCountry = country;
+  dFlag.textContent = gecToFlag(country.gec);
+  dName.textContent = country.name;
+  dRegion.textContent = REGIONS[country.region] || country.region;
+  updateDetailCompareBtn();
+  dBody.innerHTML = '<div class="skeleton" style="width:40%;height:12px;margin-bottom:16px"></div><div class="skeleton" style="width:100%;height:80px;margin-bottom:16px"></div><div class="skeleton" style="width:70%;height:12px;margin-bottom:8px"></div>';
+  detailEl.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  try {
+    const res = await fetch(RAW + '/' + country.region + '/' + country.gec + '.json');
+    if (!res.ok) throw new Error('Not found');
+    const data = await res.json();
+    const ci = compareList.findIndex(c => c.gec === country.gec);
+    if (ci !== -1) compareList[ci].data = data;
+    deepDiveCache[country.gec] = data;
+    renderDetail(data, country);
+  } catch(err) {
+    dBody.innerHTML = '<div class="status"><span class="emoji">\u{1F615}</span>Could not load data.<br><small>' + err.message + '</small></div>';
+  }
+}
+
+function get(obj, ...keys) {
+  let cur = obj;
+  for (const k of keys) { if (!cur || typeof cur !== 'object') return null; cur = cur[k]; }
+  if (cur && typeof cur === 'object' && 'text' in cur) return cur.text;
+  return cur ?? null;
+}
+
+function extractFacts(d) {
+  const popRaw = get(d,'People and Society','Population','total','text') || get(d,'People and Society','Population','text');
+  const langRaw = get(d,'People and Society','Languages','language') || get(d,'People and Society','Languages','text');
+  const gdpRaw = get(d,'Economy','Real GDP (purchasing power parity)','Real GDP (purchasing power parity) 2023','text')
+              || get(d,'Economy','Real GDP (purchasing power parity)','Real GDP (purchasing power parity) 2022','text')
+              || get(d,'Economy','GDP (purchasing power parity)','text');
+  return {
+    capital:   get(d,'Government','Capital','name','text'),
+    govType:   get(d,'Government','Government type','text'),
+    population: popRaw ? popRaw.replace(/\(.*?\)/g,'').trim() : null,
+    popNum:    parsePopNum(popRaw),
+    area:      get(d,'Geography','Area','total','text'),
+    areaNum:   parseNum(get(d,'Geography','Area','total','text')),
+    climate:   get(d,'Geography','Climate','text'),
+    langs:     Array.isArray(langRaw) ? langRaw.map(l => l.name||l).join(', ') : (langRaw||null),
+    lifeExp:   get(d,'People and Society','Life expectancy at birth','total population','text'),
+    lifeNum:   parseFloat(get(d,'People and Society','Life expectancy at birth','total population','text'))||null,
+    gdp:       gdpRaw,
+    gdpNum:    parseGDP(gdpRaw),
+    internet:  get(d,'Communications','Internet users','percent of population','text'),
+    internetNum: parseFloat(get(d,'Communications','Internet users','percent of population','text'))||null,
+    currency:  get(d,'Economy','Currency','text') || get(d,'Economy','Currency(ies)','text'),
+    borders:   get(d,'Geography','Land boundaries','border countries','text'),
+    location:  get(d,'Geography','Location','text'),
+    resources: get(d,'Geography','Natural resources','text'),
+    intro:     get(d,'Introduction','Background','text'),
+  };
+}
+
+function parsePopNum(s) { if(!s) return null; const m=s.replace(/,/g,'').match(/[\d.]+/); return m?parseFloat(m[0]):null; }
+function parseNum(s)    { if(!s) return null; const m=s.replace(/,/g,'').match(/[\d.]+/); return m?parseFloat(m[0]):null; }
+function parseGDP(s) {
+  if(!s) return null;
+  const t=s.match(/\$([\d.]+)\s*trillion/i); if(t) return parseFloat(t[1])*1e12;
+  const b=s.match(/\$([\d.]+)\s*billion/i);  if(b) return parseFloat(b[1])*1e9;
+  const m=s.match(/\$([\d.]+)\s*million/i);  if(m) return parseFloat(m[1])*1e6;
+  return null;
+}
+
+function renderDetail(d, country) {
+  const f = extractFacts(d);
+  let html = '';
+  const tiles = [
+    {icon:'\u{1F3D9}',label:'Capital',       value:f.capital,   color:'blue'},
+    {icon:'\u{1F465}',label:'Population',     value:f.population,color:'green'},
+    {icon:'\u{1F4D0}',label:'Area',           value:f.area,      color:'amber'},
+    {icon:'\u{1F4B0}',label:'GDP (PPP)',      value:f.gdp?(f.gdp.split(' ')[0]+' '+((f.gdp.match(/trillion|billion|million/i)||[''])[0])):null, color:'teal'},
+    {icon:'\u2764',   label:'Life expectancy',value:f.lifeExp,   color:'coral'},
+    {icon:'\u{1F310}',label:'Internet users', value:f.internet?(f.internet+' of people'):null, color:'purple'},
+  ].filter(t=>t.value);
+  if (tiles.length) {
+    html += '<div class="fact-section"><h3>At a glance</h3><div class="fact-grid">';
+    for (const t of tiles) html += '<div class="fact-tile '+t.color+'"><div class="fact-tile-icon">'+t.icon+'</div><div class="fact-tile-label">'+t.label+'</div><div class="fact-tile-value">'+t.value+'</div></div>';
+    html += '</div></div>';
+  }
+  const rows = [
+    {icon:'\u{1F5E3}',label:'Languages',        value:f.langs},
+    {icon:'\u{1F3DB}',label:'Government',        value:f.govType},
+    {icon:'\u{1F4CD}',label:'Location',          value:f.location},
+    {icon:'\u26C5',   label:'Climate',           value:f.climate},
+    {icon:'\u26CF',   label:'Natural resources', value:f.resources},
+    {icon:'\u{1F91D}',label:'Borders',           value:f.borders},
+    {icon:'\u{1F4B5}',label:'Currency',          value:f.currency},
+  ].filter(r=>r.value);
+  if (rows.length) {
+    html += '<div class="fact-section"><h3>More facts</h3>';
+    for (const r of rows) html += '<div class="fact-text-row"><span class="row-icon">'+r.icon+'</span><span class="row-label">'+r.label+'</span><span class="row-value">'+r.value+'</span></div>';
+    html += '</div>';
+  }
+  if (f.intro) html += '<div class="fact-section"><h3>Background</h3><div class="blurb-box">'+f.intro+'</div></div>';
+  if (!html) html = '<div class="status"><span class="emoji">\u{1F4EB}</span>No detailed data available.</div>';
+  dBody.innerHTML = html;
+}
+
+// ── Compare panel ──
+const comparePanel = document.getElementById('compare-panel');
+const compareBody  = document.getElementById('compare-body');
+document.getElementById('compare-close-btn').onclick = closeCompare;
+comparePanel.addEventListener('click', e => { if (e.target === comparePanel) closeCompare(); });
+document.getElementById('tray-compare-btn').onclick = openCompare;
+document.getElementById('tray-clear-btn').onclick = clearCompare;
+
+function closeCompare() { comparePanel.classList.remove('open'); document.body.style.overflow = ''; }
+
+async function openCompare() {
+  if (compareList.length < 2) return;
+  comparePanel.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  compareBody.innerHTML = '<div class="skeleton" style="height:200px;width:100%"></div>';
+  await Promise.all(compareList.map(async c => {
+    if (!c.data) {
+      try { const r = await fetch(RAW+'/'+c.region+'/'+c.gec+'.json'); if(r.ok) c.data = await r.json(); } catch(e) {}
+    }
+  }));
+  renderCompare();
+}
+
+function renderCompare() {
+  const cols = compareList.length;
+  const facts = compareList.map(c => c.data ? extractFacts(c.data) : null);
+  const gridCols = '170px repeat(' + cols + ', 1fr)';
+
+  function barRow(label, icon, values, fmt) {
+    const nums = values.map(v => (v != null && !isNaN(v)) ? v : null);
+    const max = Math.max(...nums.filter(v => v!=null));
+    if (max <= 0 || nums.every(v => v==null)) return '';
+    const winnerIdx = nums.indexOf(max);
+    let h = '<div class="compare-row" style="grid-template-columns:' + gridCols + '">';
+    h += '<div class="compare-cell label-cell">' + icon + ' ' + label + '</div>';
+    nums.forEach((v,i) => {
+      const pct = (max > 0 && v!=null) ? Math.round(v/max*100) : 0;
+      const win = i===winnerIdx && v!=null;
+      h += '<div class="compare-cell"><div class="bar-wrap"><div class="bar-track"><div class="bar-fill' + (win?' winner':'') + '" style="width:' + pct + '%"></div></div><div class="bar-val">' + (v!=null?fmt(v):'\u2014') + '</div></div></div>';
+    });
+    return h + '</div>';
+  }
+
+  function textRow(label, icon, values) {
+    if (values.every(v=>!v)) return '';
+    let h = '<div class="compare-row" style="grid-template-columns:' + gridCols + '">';
+    h += '<div class="compare-cell label-cell">' + icon + ' ' + label + '</div>';
+    values.forEach(v => { h += '<div class="compare-cell" style="font-size:0.82rem">' + (v||'\u2014') + '</div>'; });
+    return h + '</div>';
+  }
+
+  function fmtPop(n)  { return n>=1e9?(n/1e9).toFixed(2)+'B':n>=1e6?(n/1e6).toFixed(1)+'M':(n/1e3).toFixed(0)+'K'; }
+  function fmtArea(n) { return n.toLocaleString()+' km\u00B2'; }
+  function fmtGDP(n)  { return n>=1e12?'$'+(n/1e12).toFixed(2)+'T':n>=1e9?'$'+(n/1e9).toFixed(1)+'B':'$'+(n/1e6).toFixed(0)+'M'; }
+  function fmtYrs(n)  { return n.toFixed(1)+' yrs'; }
+  function fmtPct(n)  { return n.toFixed(1)+'%'; }
+
+  let html = '<div class="compare-grid">';
+  // Headers
+  html += '<div class="compare-row header-row" style="grid-template-columns:' + gridCols + '">';
+  html += '<div class="compare-cell" style="background:transparent"></div>';
+  compareList.forEach(c => {
+    html += '<div class="compare-cell country-header"><span class="ch-flag">' + gecToFlag(c.gec) + '</span><span class="ch-name">' + c.name + '</span></div>';
+  });
+  html += '</div>';
+  // Text rows
+  html += textRow('Capital',    '\u{1F3D9}', facts.map(f=>f?.capital));
+  html += textRow('Government', '\u{1F3DB}', facts.map(f=>f?.govType?(f.govType.slice(0,55)+(f.govType.length>55?'\u2026':'')):null));
+  html += textRow('Currency',   '\u{1F4B5}', facts.map(f=>f?.currency));
+  html += textRow('Languages',  '\u{1F5E3}', facts.map(f=>f?.langs?(f.langs.slice(0,55)+(f.langs.length>55?'\u2026':'')):null));
+  // Bar rows
+  html += barRow('Population',      '\u{1F465}', facts.map(f=>f?.popNum),     fmtPop);
+  html += barRow('Area',            '\u{1F4D0}', facts.map(f=>f?.areaNum),    fmtArea);
+  html += barRow('GDP (PPP)',       '\u{1F4B0}', facts.map(f=>f?.gdpNum),     fmtGDP);
+  html += barRow('Life expectancy', '\u2764',    facts.map(f=>f?.lifeNum),    fmtYrs);
+  html += barRow('Internet users',  '\u{1F310}', facts.map(f=>f?.internetNum),fmtPct);
+  html += '</div>';
+  compareBody.innerHTML = html;
+}
+
+// ── Deep Dive ──
+const deepDiveCache = {};  // declared first — used by button handler below
+
+const ddPanel   = document.getElementById('deep-dive');
+const ddFlag    = document.getElementById('dd-flag');
+const ddName    = document.getElementById('dd-name');
+const ddBody    = document.getElementById('dd-body');
+
+document.getElementById('dd-close-btn').onclick = closeDeepDive;
+document.getElementById('detail-deepdive-btn').onclick = () => {
+  if (!currentDetailCountry) return;
+  const country = currentDetailCountry;       // capture before closeDetail nulls it
+  const cached = deepDiveCache[country.gec];
+  closeDetail();
+  openDeepDive(country, cached || null);
+};
+
+function closeDeepDive() {
+  ddPanel.classList.remove('open');
+  document.body.classList.remove('dd-open');
+}
+
+async function openDeepDive(country, cachedData) {
+  ddFlag.textContent = gecToFlag(country.gec);
+  ddName.textContent = country.name;
+  ddBody.innerHTML = `
+    <div class="skeleton" style="height:48px;margin:8px 16px;border-radius:8px"></div>
+    <div class="skeleton" style="height:48px;margin:8px 16px;border-radius:8px"></div>
+    <div class="skeleton" style="height:48px;margin:8px 16px;border-radius:8px"></div>
+    <div class="skeleton" style="height:48px;margin:8px 16px;border-radius:8px"></div>
+  `;
+  ddPanel.classList.add('open');
+  document.body.classList.add('dd-open');
+
+  let data = cachedData;
+  if (!data) {
+    try {
+      const res = await fetch(`${RAW}/${country.region}/${country.gec}.json`);
+      if (!res.ok) throw new Error('Not found');
+      data = await res.json();
+      deepDiveCache[country.gec] = data;
+    } catch(err) {
+      ddBody.innerHTML = `<div class="status"><span class="emoji">😕</span>Could not load data.<br><small>${err.message}</small></div>`;
+      return;
+    }
+  }
+
+  renderDeepDive(data);
+}
+
+const DD_SECTIONS = [
+  { key: 'Introduction',          label: 'Introduction',         icon: '📖' },
+  { key: 'Geography',             label: 'Geography',            icon: '🌍' },
+  { key: 'People and Society',    label: 'People & Society',     icon: '👥' },
+  { key: 'Environment',           label: 'Environment',          icon: '🌿' },
+  { key: 'Government',            label: 'Government',           icon: '🏛️' },
+  { key: 'Economy',               label: 'Economy',              icon: '💰' },
+  { key: 'Energy',                label: 'Energy',               icon: '⚡' },
+  { key: 'Communications',        label: 'Communications',       icon: '📡' },
+  { key: 'Transportation',        label: 'Transportation',       icon: '✈️' },
+  { key: 'Military and Security', label: 'Military & Security',  icon: '🛡️' },
+  { key: 'Space',                 label: 'Space',                icon: '🚀' },
+  { key: 'Terrorism',             label: 'Terrorism',            icon: '⚠️' },
+  { key: 'Transnational Issues',  label: 'Transnational Issues', icon: '🌐' },
+];
+
+function flattenSection(obj, prefix) {
+  const rows = [];
+  if (!obj || typeof obj !== 'object') return rows;
+  for (const [key, val] of Object.entries(obj)) {
+    if (key === 'text') continue;
+    const label = prefix ? `${prefix} — ${key}` : key;
+    if (val && typeof val === 'object') {
+      if ('text' in val) {
+        const text = cleanValue(val.text);
+        if (text) rows.push({ label, value: text });
+        for (const [subKey, subVal] of Object.entries(val)) {
+          if (subKey === 'text') continue;
+          const subLabel = `${label} — ${subKey}`;
+          if (subVal && typeof subVal === 'object' && 'text' in subVal) {
+            const t = cleanValue(subVal.text);
+            if (t) rows.push({ label: subLabel, value: t });
+          } else if (typeof subVal === 'string' && subVal.trim()) {
+            rows.push({ label: subLabel, value: cleanValue(subVal) });
+          } else if (Array.isArray(subVal)) {
+            const arr = subVal.map(i => typeof i === 'object' ? (i.name || i.text || JSON.stringify(i)) : i).join(', ');
+            if (arr) rows.push({ label: subLabel, value: arr });
+          }
+        }
+      } else if (Array.isArray(val)) {
+        const arr = val.map(i => typeof i === 'object' ? (i.name || i.text || '') : i).filter(Boolean).join(', ');
+        if (arr) rows.push({ label, value: arr });
+      } else {
+        rows.push(...flattenSection(val, label));
+      }
+    } else if (typeof val === 'string' && val.trim()) {
+      rows.push({ label, value: cleanValue(val) });
+    }
+  }
+  return rows;
+}
+
+function cleanValue(s) {
+  if (!s) return '';
+  return s.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function renderDeepDive(data) {
+  let html = '';
+  let firstOpen = true;
+  for (const section of DD_SECTIONS) {
+    const sectionData = data[section.key];
+    if (!sectionData) continue;
+    const rows = flattenSection(sectionData, '');
+    if (rows.length === 0) continue;
+    const isOpen = firstOpen;
+    firstOpen = false;
+    html += `
+      <div class="dd-section">
+        <button class="dd-section-btn${isOpen ? ' active' : ''}" onclick="toggleDDSection(this)">
+          <span class="dd-section-title">
+            <span class="dd-icon">${section.icon}</span>
+            ${section.label}
+            <span class="dd-section-count">${rows.length}</span>
+          </span>
+          <span class="dd-chevron">${isOpen ? '▲' : '▼'}</span>
+        </button>
+        <div class="dd-section-body${isOpen ? ' open' : ''}">
+    `;
+    for (const row of rows) {
+      const label = row.label.replace(/^ — /, '');
+      html += `
+        <div class="dd-field">
+          <div class="dd-field-label">${label}</div>
+          <div class="dd-field-value">${row.value}</div>
+        </div>
+      `;
+    }
+    html += `</div></div>`;
+  }
+  if (!html) {
+    html = `<div class="status"><span class="emoji">📭</span>No detailed data available.</div>`;
+  }
+  ddBody.innerHTML = html;
+}
+
+function toggleDDSection(btn) {
+  const body = btn.nextElementSibling;
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  btn.classList.toggle('active', !isOpen);
+  btn.querySelector('.dd-chevron').textContent = isOpen ? '▼' : '▲';
+}
+
+// ── Init ──
+buildTabs();
+renderGrid();
+</script>
+</body>
+</html>
