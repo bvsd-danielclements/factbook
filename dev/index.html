@@ -75,33 +75,33 @@ header::before {
 
 /* Left summary panel */
 #panel-summary {
-  width: 0;
+  flex: 0 0 0;
   flex-shrink: 0;
   overflow: hidden;
-  transition: width 0.3s ease;
+  transition: flex-basis 0.3s ease, width 0.3s ease;
   border-right: 0px solid var(--border);
   display: flex;
   flex-direction: column;
   background: var(--card);
 }
 #panel-summary.open {
-  width: var(--panel-w);
+  flex: 1 1 var(--panel-w);
   border-right-width: 1px;
 }
 
 /* Right deep-dive panel */
 #panel-dive {
-  width: 0;
+  flex: 0 0 0;
   flex-shrink: 0;
   overflow: hidden;
-  transition: width 0.3s ease;
+  transition: flex-basis 0.3s ease, width 0.3s ease;
   border-left: 0px solid var(--border);
   display: flex;
   flex-direction: column;
   background: var(--card);
 }
 #panel-dive.open {
-  width: var(--panel-w);
+  flex: 1 1 var(--panel-w);
   border-left-width: 1px;
 }
 
@@ -141,9 +141,10 @@ header::before {
 /* Collapsed tab state */
 #panel-summary.collapsed,
 #panel-dive.collapsed {
-  width: 28px !important;
+  flex: 0 0 28px !important;
   border-color: var(--border);
   cursor: pointer;
+  overflow: hidden;
 }
 #panel-summary.collapsed .panel-body,
 #panel-dive.collapsed .panel-body { display: none; }
@@ -179,10 +180,10 @@ header::before {
 
 /* Center grid */
 .col-grid {
-  flex: 1;
+  flex: 0 0 360px;
   display: flex;
   flex-direction: column;
-  min-width: 0;
+  min-width: 200px;
   overflow: hidden;
 }
 .grid-controls {
@@ -691,7 +692,7 @@ function addAccordion(c) {
       '<span class="acc-flag">' + flag + '</span>' +
       '<span class="acc-name">' + c.name + '</span>' +
       '<span class="acc-chevron">▲</span>' +
-      '<button class="acc-remove" onclick="event.stopPropagation();toggleSelect(null,' + JSON.stringify(c) + ')" title="Remove">✕</button>' +
+      '<button class="acc-remove" data-gec="' + c.gec + '" onclick="event.stopPropagation();removeByGec(this.dataset.gec)" title="Remove">✕</button>' +
     '</div>' +
     '<div class="acc-body open" id="sbody-' + c.gec + '">' +
       '<div class="skel" style="width:60%"></div>' +
@@ -709,7 +710,7 @@ function addAccordion(c) {
       '<span class="acc-flag">' + flag + '</span>' +
       '<span class="acc-name">' + c.name + '</span>' +
       '<span class="acc-chevron">▲</span>' +
-      '<button class="acc-remove" onclick="event.stopPropagation();toggleSelect(null,' + JSON.stringify(c) + ')" title="Remove">✕</button>' +
+      '<button class="acc-remove" data-gec="' + c.gec + '" onclick="event.stopPropagation();removeByGec(this.dataset.gec)" title="Remove">✕</button>' +
     '</div>' +
     '<div class="acc-body open" id="dbody-' + c.gec + '">' +
       '<div class="skel" style="width:60%"></div>' +
@@ -919,16 +920,35 @@ function toggleDDSec(btn) {
   btn.querySelector('.dd-sec-chevron').textContent = body.classList.contains('open') ? '▲' : '▼';
 }
 
+function removeByGec(gec) {
+  const idx = selected.findIndex(s => s.gec === gec);
+  if (idx !== -1) {
+    selected.splice(idx, 1);
+    removeAccordion(gec);
+    updatePanels();
+    renderGrid();
+  }
+}
+
 function collapsePanel(id) {
   const panel = document.getElementById(id);
   panel.classList.add('collapsed');
-  // Update collapse button to become expand arrow when clicked on the tab
+  // Expand the opposite panel to fill the freed space
+  const otherId = id === 'panel-summary' ? 'panel-dive' : 'panel-summary';
+  const other = document.getElementById(otherId);
+  if (other.classList.contains('open')) {
+    other.style.flex = '1';
+  }
 }
 
 function expandIfCollapsed(id) {
   const panel = document.getElementById(id);
   if (panel.classList.contains('collapsed')) {
     panel.classList.remove('collapsed');
+    panel.style.flex = '';
+    // Reset opposite panel flex too
+    const otherId = id === 'panel-summary' ? 'panel-dive' : 'panel-summary';
+    document.getElementById(otherId).style.flex = '';
   }
 }
 
