@@ -119,20 +119,56 @@ header::before {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 6px;
 }
-.panel-hdr-title { color: var(--bvsd-pale); }
-.panel-clear-btn {
+.panel-hdr-title { color: var(--bvsd-pale); flex: 1; }
+.panel-hdr-btns  { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+.panel-clear-btn, .panel-collapse-btn {
   background: transparent;
   border: 1px solid rgba(255,255,255,.3);
   color: rgba(255,255,255,.7);
   font-size: 0.62rem;
   font-weight: 700;
-  padding: 2px 8px;
+  padding: 2px 7px;
   border-radius: 999px;
   cursor: pointer;
   font-family: Roboto, Arial, sans-serif;
+  line-height: 1.4;
 }
-.panel-clear-btn:hover { color: #fff; border-color: #fff; }
+.panel-clear-btn:hover,
+.panel-collapse-btn:hover { color: #fff; border-color: #fff; }
+
+/* Collapsed tab state */
+#panel-summary.collapsed,
+#panel-dive.collapsed {
+  width: 28px !important;
+  border-color: var(--border);
+  cursor: pointer;
+}
+#panel-summary.collapsed .panel-body,
+#panel-dive.collapsed .panel-body { display: none; }
+#panel-summary.collapsed .panel-hdr,
+#panel-dive.collapsed .panel-hdr {
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 0.6rem 0;
+  height: 100%;
+  writing-mode: initial;
+}
+#panel-summary.collapsed .panel-hdr-title,
+#panel-dive.collapsed .panel-hdr-title {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  letter-spacing: .1em;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+#panel-summary.collapsed .panel-hdr-btns,
+#panel-dive.collapsed .panel-hdr-btns { display: none; }
 
 /* Scrollable panel body */
 .panel-body {
@@ -271,6 +307,7 @@ header::before {
   cursor: pointer;
   text-align: left;
   transition: background .15s;
+  user-select: none;
 }
 .acc-trigger:hover { background: var(--bvsd-pale); }
 .acc-trigger.open  { background: var(--bvsd-pale); }
@@ -418,9 +455,12 @@ header::before {
 
   <!-- LEFT: Summary panel -->
   <div id="panel-summary">
-    <div class="panel-hdr">
+    <div class="panel-hdr" onclick="expandIfCollapsed('panel-summary')">
       <span class="panel-hdr-title">📋 Summary</span>
-      <button class="panel-clear-btn" onclick="clearAll()">Clear all</button>
+      <div class="panel-hdr-btns">
+        <button class="panel-collapse-btn" onclick="event.stopPropagation();collapsePanel('panel-summary')" title="Collapse">‹</button>
+        <button class="panel-clear-btn" onclick="event.stopPropagation();clearAll()">Clear</button>
+      </div>
     </div>
     <div class="panel-body" id="summary-body"></div>
   </div>
@@ -439,9 +479,12 @@ header::before {
 
   <!-- RIGHT: Deep dive panel -->
   <div id="panel-dive">
-    <div class="panel-hdr">
+    <div class="panel-hdr" onclick="expandIfCollapsed('panel-dive')">
       <span class="panel-hdr-title">🔬 Deep Dive</span>
-      <button class="panel-clear-btn" onclick="clearAll()">Clear all</button>
+      <div class="panel-hdr-btns">
+        <button class="panel-collapse-btn" onclick="event.stopPropagation();collapsePanel('panel-dive')" title="Collapse">›</button>
+        <button class="panel-clear-btn" onclick="event.stopPropagation();clearAll()">Clear</button>
+      </div>
     </div>
     <div class="panel-body" id="dive-body"></div>
   </div>
@@ -644,12 +687,12 @@ function addAccordion(c) {
   sAcc.className = 'country-accordion';
   sAcc.id = 'sacc-' + c.gec;
   sAcc.innerHTML =
-    '<button class="acc-trigger open" onclick="toggleAcc(this)">' +
+    '<div class="acc-trigger open" onclick="toggleAcc(this)">' +
       '<span class="acc-flag">' + flag + '</span>' +
       '<span class="acc-name">' + c.name + '</span>' +
       '<span class="acc-chevron">▲</span>' +
       '<button class="acc-remove" onclick="event.stopPropagation();toggleSelect(null,' + JSON.stringify(c) + ')" title="Remove">✕</button>' +
-    '</button>' +
+    '</div>' +
     '<div class="acc-body open" id="sbody-' + c.gec + '">' +
       '<div class="skel" style="width:60%"></div>' +
       '<div class="skel" style="width:80%;margin-top:6px"></div>' +
@@ -662,12 +705,12 @@ function addAccordion(c) {
   dAcc.className = 'country-accordion';
   dAcc.id = 'dacc-' + c.gec;
   dAcc.innerHTML =
-    '<button class="acc-trigger open" onclick="toggleAcc(this)">' +
+    '<div class="acc-trigger open" onclick="toggleAcc(this)">' +
       '<span class="acc-flag">' + flag + '</span>' +
       '<span class="acc-name">' + c.name + '</span>' +
       '<span class="acc-chevron">▲</span>' +
       '<button class="acc-remove" onclick="event.stopPropagation();toggleSelect(null,' + JSON.stringify(c) + ')" title="Remove">✕</button>' +
-    '</button>' +
+    '</div>' +
     '<div class="acc-body open" id="dbody-' + c.gec + '">' +
       '<div class="skel" style="width:60%"></div>' +
       '<div class="skel" style="width:90%;margin-top:6px"></div>' +
@@ -874,6 +917,19 @@ function toggleDDSec(btn) {
   const body = btn.nextElementSibling;
   body.classList.toggle('open');
   btn.querySelector('.dd-sec-chevron').textContent = body.classList.contains('open') ? '▲' : '▼';
+}
+
+function collapsePanel(id) {
+  const panel = document.getElementById(id);
+  panel.classList.add('collapsed');
+  // Update collapse button to become expand arrow when clicked on the tab
+}
+
+function expandIfCollapsed(id) {
+  const panel = document.getElementById(id);
+  if (panel.classList.contains('collapsed')) {
+    panel.classList.remove('collapsed');
+  }
 }
 
 // ── Init ──
