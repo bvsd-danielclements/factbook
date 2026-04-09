@@ -2,6 +2,7 @@
 
 This repo has a student friendly version of the latest data available from the CIA Factbook. After the factbook was taken down and only accessible via the Internet Archive, we had to find a way to self host the side. Various methods were attempted, but all were too cumbersome. This project was built on the factbook.json project and just turns that structured json data into a purusable, functional format for students and classrooms. 
 
+Deep dive added.
 
 
 
