@@ -1299,9 +1299,10 @@ const ddBody    = document.getElementById('dd-body');
 document.getElementById('dd-close-btn').onclick = closeDeepDive;
 document.getElementById('detail-deepdive-btn').onclick = () => {
   if (!currentDetailCountry) return;
-  const cached = deepDiveCache[currentDetailCountry.gec];
+  const country = currentDetailCountry;       // capture before closeDetail nulls it
+  const cached = deepDiveCache[country.gec];
   closeDetail();
-  openDeepDive(currentDetailCountry, cached || null);
+  openDeepDive(country, cached || null);
 };
 
 function closeDeepDive() {
