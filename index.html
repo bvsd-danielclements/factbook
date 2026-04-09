@@ -1289,6 +1289,8 @@ function renderCompare() {
 }
 
 // ── Deep Dive ──
+const deepDiveCache = {};  // declared first — used by button handler below
+
 const ddPanel   = document.getElementById('deep-dive');
 const ddFlag    = document.getElementById('dd-flag');
 const ddName    = document.getElementById('dd-name');
@@ -1301,9 +1303,6 @@ document.getElementById('detail-deepdive-btn').onclick = () => {
   closeDetail();
   openDeepDive(currentDetailCountry, cached || null);
 };
-
-// Cache fetched JSON so deep dive doesn't re-fetch if detail already loaded it
-const deepDiveCache = {};
 
 function closeDeepDive() {
   ddPanel.classList.remove('open');
@@ -1333,14 +1332,11 @@ async function openDeepDive(country, cachedData) {
       ddBody.innerHTML = `<div class="status"><span class="emoji">😕</span>Could not load data.<br><small>${err.message}</small></div>`;
       return;
     }
-  } else {
-    deepDiveCache[country.gec] = data;
   }
 
   renderDeepDive(data);
 }
 
-// Section config: label, icon, and the factbook JSON top-level key
 const DD_SECTIONS = [
   { key: 'Introduction',          label: 'Introduction',         icon: '📖' },
   { key: 'Geography',             label: 'Geography',            icon: '🌍' },
@@ -1357,21 +1353,16 @@ const DD_SECTIONS = [
   { key: 'Transnational Issues',  label: 'Transnational Issues', icon: '🌐' },
 ];
 
-// Recursively flatten a nested factbook JSON section into {label: value} pairs
 function flattenSection(obj, prefix) {
   const rows = [];
   if (!obj || typeof obj !== 'object') return rows;
-
   for (const [key, val] of Object.entries(obj)) {
-    if (key === 'text') continue; // handled by parent
+    if (key === 'text') continue;
     const label = prefix ? `${prefix} — ${key}` : key;
-
     if (val && typeof val === 'object') {
       if ('text' in val) {
-        // Leaf node with a text value
         const text = cleanValue(val.text);
         if (text) rows.push({ label, value: text });
-        // Also recurse for sub-keys that aren't just 'text' and 'note'
         for (const [subKey, subVal] of Object.entries(val)) {
           if (subKey === 'text') continue;
           const subLabel = `${label} — ${subKey}`;
@@ -1389,7 +1380,6 @@ function flattenSection(obj, prefix) {
         const arr = val.map(i => typeof i === 'object' ? (i.name || i.text || '') : i).filter(Boolean).join(', ');
         if (arr) rows.push({ label, value: arr });
       } else {
-        // Recurse deeper
         rows.push(...flattenSection(val, label));
       }
     } else if (typeof val === 'string' && val.trim()) {
@@ -1401,24 +1391,19 @@ function flattenSection(obj, prefix) {
 
 function cleanValue(s) {
   if (!s) return '';
-  // Strip HTML tags
   return s.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 function renderDeepDive(data) {
   let html = '';
   let firstOpen = true;
-
   for (const section of DD_SECTIONS) {
     const sectionData = data[section.key];
     if (!sectionData) continue;
-
     const rows = flattenSection(sectionData, '');
     if (rows.length === 0) continue;
-
     const isOpen = firstOpen;
     firstOpen = false;
-
     html += `
       <div class="dd-section">
         <button class="dd-section-btn${isOpen ? ' active' : ''}" onclick="toggleDDSection(this)">
@@ -1431,9 +1416,7 @@ function renderDeepDive(data) {
         </button>
         <div class="dd-section-body${isOpen ? ' open' : ''}">
     `;
-
     for (const row of rows) {
-      // Clean up label — remove leading ' — ' if prefix was empty
       const label = row.label.replace(/^ — /, '');
       html += `
         <div class="dd-field">
@@ -1442,14 +1425,11 @@ function renderDeepDive(data) {
         </div>
       `;
     }
-
     html += `</div></div>`;
   }
-
   if (!html) {
     html = `<div class="status"><span class="emoji">📭</span>No detailed data available.</div>`;
   }
-
   ddBody.innerHTML = html;
 }
 
@@ -1459,13 +1439,6 @@ function toggleDDSection(btn) {
   body.classList.toggle('open', !isOpen);
   btn.classList.toggle('active', !isOpen);
   btn.querySelector('.dd-chevron').textContent = isOpen ? '▼' : '▲';
-}
-
-// Also cache data when detail panel loads it
-const _origOpenDetail = openDetail;
-// Wrap openDetail to cache data for deep dive reuse
-async function openDetailWrapped(country) {
-  await _origOpenDetail(country);
 }
 
 // ── Init ──
